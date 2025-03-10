@@ -66,10 +66,6 @@ const Landing = () => {
             </span>
           </button>
         </div>
-        
-        <div className="absolute bottom-8 left-0 right-0 text-center text-purple-300/50 text-sm animate-fade-in">
-          <p>The future is speaking</p>
-        </div>
       </div>
     </div>;
 };
