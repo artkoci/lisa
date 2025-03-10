@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Message, CallStatus, ApiConfig } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
@@ -14,54 +15,162 @@ export const useVoiceChat = (apiConfig: Partial<ApiConfig> = {}) => {
   const [callStatus, setCallStatus] = useState<CallStatus>('idle');
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  
+  // WebSocket reference
+  const wsRef = useRef<WebSocket | null>(null);
+  
+  // Audio recorder reference
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   
   // Merge default config with provided config
   const config = { ...DEFAULT_API_CONFIG, ...apiConfig };
 
-  // Initialize conversation
-  useEffect(() => {
-    // In a real implementation, this would connect to the FastAPI backend
-    // For now, we'll simulate the connection process
+  // Initialize WebSocket connection
+  const initializeWebSocket = useCallback(() => {
+    const wsUrl = `${config.baseUrl.replace('http', 'ws')}/ws`;
     
-    const simulateInitialConnection = () => {
-      // Add welcome message for demonstration
-      const welcomeMessage: Message = {
-        id: uuidv4(),
-        text: "Welcome to our AI-powered call center. How can I assist you today?",
-        sender: 'agent',
-        timestamp: new Date()
-      };
-      
-      setMessages([welcomeMessage]);
-      setIsAgentSpeaking(true);
-      
-      // Simulate agent speaking for 4 seconds
-      setTimeout(() => {
-        setIsAgentSpeaking(false);
-      }, 4000);
-    };
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
     
-    simulateInitialConnection();
-  }, []);
-
-  // Function to start a call
-  const startCall = useCallback(() => {
-    setCallStatus('connecting');
-    playConnectSound();
-    
-    // Simulate connection delay
-    setTimeout(() => {
+    ws.onopen = () => {
+      console.log('WebSocket connection established');
       setCallStatus('active');
+      
       toast({
         title: "Call connected",
         description: "You're now connected to our AI assistant",
       });
-    }, 1500);
-  }, [toast]);
+      
+      // Send initial message to start the conversation
+      ws.send(JSON.stringify({
+        type: 'init',
+        session_id: uuidv4(),
+      }));
+    };
+    
+    ws.onclose = () => {
+      console.log('WebSocket connection closed');
+      if (callStatus !== 'disconnected') {
+        setCallStatus('disconnected');
+        toast({
+          title: "Connection lost",
+          description: "The call was disconnected",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setCallStatus('error');
+      toast({
+        title: "Connection error",
+        description: "Failed to connect to the voice service",
+        variant: "destructive"
+      });
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'agent_message') {
+          // Add agent message to chat
+          const agentMessage: Message = {
+            id: uuidv4(),
+            text: data.text,
+            sender: 'agent',
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, agentMessage]);
+          
+          // Set agent speaking state
+          setIsAgentSpeaking(true);
+          
+          // When using text-to-speech, the agent will speak for a while
+          // In a real implementation, we'd use the audio duration to determine when to stop
+          // For now, we'll set a timeout based on text length
+          const speakingDuration = Math.max(2000, data.text.length * 80);
+          setTimeout(() => {
+            setIsAgentSpeaking(false);
+          }, speakingDuration);
+        }
+        else if (data.type === 'transcription') {
+          // Add user message from transcription
+          const userMessage: Message = {
+            id: uuidv4(),
+            text: data.text,
+            sender: 'user',
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, userMessage]);
+          setIsProcessing(true);
+          
+          // After receiving transcription, the agent will process and respond
+          setTimeout(() => {
+            setIsProcessing(false);
+          }, 1500);
+        }
+        else if (data.type === 'error') {
+          console.error('Server error:', data.message);
+          toast({
+            title: "Error",
+            description: data.message || "An error occurred",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+    
+  }, [config.baseUrl, toast, callStatus]);
+
+  // Function to start a call
+  const startCall = useCallback(() => {
+    if (callStatus === 'active' || callStatus === 'connecting') {
+      console.log('Call already in progress');
+      return;
+    }
+    
+    setCallStatus('connecting');
+    playConnectSound();
+    
+    // Initialize WebSocket connection
+    initializeWebSocket();
+    
+    // Add welcome message
+    setTimeout(() => {
+      if (wsRef.current?.readyState !== WebSocket.OPEN) {
+        // If WebSocket is not open after timeout, show error
+        setCallStatus('error');
+        toast({
+          title: "Connection failed",
+          description: "Could not connect to the voice service",
+          variant: "destructive"
+        });
+      }
+    }, 5000);
+  }, [callStatus, initializeWebSocket, toast]);
 
   // Function to end a call
   const endCall = useCallback(() => {
+    // Stop any recording in progress
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    
+    // Close WebSocket connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
     setCallStatus('disconnected');
     setIsAgentSpeaking(false);
     setIsUserSpeaking(false);
@@ -78,8 +187,12 @@ export const useVoiceChat = (apiConfig: Partial<ApiConfig> = {}) => {
     }, 2000);
   }, [toast]);
 
-  // Function to send a user message
+  // Function to send a user message via text
   const sendUserMessage = useCallback((text: string) => {
+    if (!text.trim() || callStatus !== 'active' || !wsRef.current) {
+      return;
+    }
+    
     const userMessage: Message = {
       id: uuidv4(),
       text,
@@ -88,67 +201,110 @@ export const useVoiceChat = (apiConfig: Partial<ApiConfig> = {}) => {
     };
     
     setMessages(prev => [...prev, userMessage]);
-    setIsUserSpeaking(false);
     
-    // In a real implementation, this would send the message to the FastAPI backend
-    // and receive a response. For now, we'll simulate a response
+    // Send message to server
+    wsRef.current.send(JSON.stringify({
+      type: 'message',
+      text: text
+    }));
     
-    setCallStatus('active');
+    setIsProcessing(true);
+  }, [callStatus]);
+
+  // Function to start recording user audio
+  const startUserSpeaking = useCallback(async () => {
+    if (callStatus !== 'active' || isUserSpeaking || !wsRef.current) {
+      return;
+    }
     
-    // Simulate agent thinking
-    setTimeout(() => {
-      setIsAgentSpeaking(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Simulate agent response after a delay
-      setTimeout(() => {
-        // Sample responses - in a real implementation, these would come from the API
-        const responses = [
-          "I understand your concern. Let me help you with that.",
-          "Thanks for providing that information. Is there anything else you'd like to know?",
-          "I'm checking our system for that information. One moment please.",
-          "That's a great question. Here's what I can tell you.",
-          "I'd be happy to assist with your request."
-        ];
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        if (audioChunksRef.current.length === 0 || !wsRef.current) {
+          setIsUserSpeaking(false);
+          return;
+        }
         
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-        
-        const agentMessage: Message = {
-          id: uuidv4(),
-          text: randomResponse,
-          sender: 'agent',
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, agentMessage]);
-        
-        // Simulate agent speaking for a few seconds
-        setTimeout(() => {
-          setIsAgentSpeaking(false);
-        }, 3000);
-      }, 1000);
-    }, 1500);
-  }, []);
+        try {
+          // Create audio blob
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          
+          // Reset chunks for next recording
+          audioChunksRef.current = [];
+          
+          // Send audio to server via WebSocket
+          wsRef.current.send(audioBlob);
+          
+          setIsUserSpeaking(false);
+          setIsProcessing(true);
+        } catch (error) {
+          console.error('Error processing audio:', error);
+          setIsUserSpeaking(false);
+          toast({
+            title: "Error processing speech",
+            description: "Could not process your speech",
+            variant: "destructive"
+          });
+        }
+      };
+      
+      // Start recording
+      mediaRecorder.start();
+      setIsUserSpeaking(true);
+      setIsAgentSpeaking(false);
+      
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      setIsUserSpeaking(false);
+      toast({
+        title: "Microphone access failed",
+        description: "Could not access your microphone",
+        variant: "destructive"
+      });
+    }
+  }, [callStatus, isUserSpeaking, toast]);
 
-  // Function to handle user speaking state
-  const startUserSpeaking = useCallback(() => {
-    setIsUserSpeaking(true);
-    setIsAgentSpeaking(false);
-  }, []);
-
-  // Function to handle user stopping speaking
+  // Function to stop recording user audio
   const stopUserSpeaking = useCallback(() => {
-    setIsUserSpeaking(false);
-    
-    // In a real implementation, this would send the audio to the FastAPI backend
-    // For demonstration, we'll simulate this with a text message
-    sendUserMessage("This is a simulated user message from voice input.");
-  }, [sendUserMessage]);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      
+      // Stop all tracks on the stream
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
+      
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
 
   return {
     messages,
     callStatus,
     isAgentSpeaking,
     isUserSpeaking,
+    isProcessing,
     startCall,
     endCall,
     sendUserMessage,

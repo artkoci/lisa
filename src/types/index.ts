@@ -16,5 +16,6 @@ export type CallStatus = 'idle' | 'connecting' | 'active' | 'disconnected' | 'er
 
 export interface ApiConfig {
   baseUrl: string;
+  apiKey?: string;
   // Add more API configuration options as needed
 }
