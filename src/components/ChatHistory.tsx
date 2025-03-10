@@ -5,9 +5,10 @@ import { ArrowLeft } from 'lucide-react';
 
 interface ChatHistoryProps {
   messages: Message[];
+  onClose: () => void;
 }
 
-const ChatHistory: React.FC<ChatHistoryProps> = ({ messages }) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onClose }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when messages change
@@ -24,7 +25,14 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages }) => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden animate-fade-in">
-      <div className="p-4 border-b border-purple-900/30 bg-black/30">
+      <div className="p-4 border-b border-purple-900/30 bg-black/30 flex items-center">
+        <button 
+          onClick={onClose}
+          className="mr-2 p-2 rounded-full hover:bg-purple-900/30 transition-colors"
+          aria-label="Close chat history"
+        >
+          <ArrowLeft className="w-5 h-5 text-purple-300" />
+        </button>
         <h2 className="text-lg font-medium text-purple-100">Conversation History</h2>
       </div>
       

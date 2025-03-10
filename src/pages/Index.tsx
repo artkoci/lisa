@@ -104,6 +104,11 @@ const Index = () => {
     setIsChatOpen(!isChatOpen);
   };
 
+  // Close chat history
+  const closeChat = () => {
+    setIsChatOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-950 to-black flex flex-col items-center justify-center p-6 transition-colors duration-700">
       <div className="max-w-5xl w-full mx-auto flex flex-col items-center">
@@ -173,7 +178,7 @@ const Index = () => {
             }`}
           >
             <div className="h-full w-full bg-black/80 backdrop-blur-xl shadow-2xl border-l border-purple-900/30">
-              <ChatHistory messages={messages} />
+              <ChatHistory messages={messages} onClose={closeChat} />
             </div>
           </div>
         </div>
