@@ -125,7 +125,7 @@ const Index = () => {
             <div className="mt-6 text-sm text-muted-foreground text-center">
               {callStatus === 'active' ? isMuted ? <span className="text-orange-400">Microphone is muted</span> : <span>
                     {isUserSpeaking ? "Listening to you..." : "Press the microphone button to speak"}
-                  </span> : callStatus === 'idle' ? <span>Press the phone button to connect</span> : callStatus === 'connecting' ? <span>Establishing secure connection...</span> : <span>Call ended</span>}
+                  </span> : callStatus === 'idle' ? <span>Press the button to connect</span> : callStatus === 'connecting' ? <span>Establishing secure connection...</span> : <span>Call ended</span>}
             </div>
           </div>
           
