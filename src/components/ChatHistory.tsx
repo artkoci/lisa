@@ -22,8 +22,8 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-border shadow-sm overflow-hidden animate-fade-in">
-      <div className="p-4 border-b border-border bg-secondary/50">
+    <div className="overflow-hidden animate-fade-in">
+      <div className="p-4 border-b border-purple-100 dark:border-purple-900/30 bg-white/30 dark:bg-black/30">
         <h2 className="text-lg font-medium">Conversation History</h2>
       </div>
       
@@ -47,16 +47,16 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages }) => {
             >
               <div 
                 className={`
-                  max-w-[80%] rounded-2xl px-4 py-3 shadow-sm
+                  max-w-[80%] rounded-2xl px-4 py-3 shadow-sm transition-all duration-300 hover:shadow-md
                   ${message.sender === 'user' 
-                    ? 'bg-primary text-primary-foreground rounded-tr-none' 
-                    : 'bg-secondary text-secondary-foreground rounded-tl-none border border-border'
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-tr-none' 
+                    : 'bg-white/50 dark:bg-white/10 backdrop-blur-sm text-foreground rounded-tl-none border border-purple-100 dark:border-purple-900/30'
                   }
                 `}
               >
                 <div className="flex flex-col">
                   <span className="text-sm">{message.text}</span>
-                  <span className={`text-xs mt-1 ${message.sender === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                  <span className={`text-xs mt-1 ${message.sender === 'user' ? 'text-purple-100' : 'text-muted-foreground'}`}>
                     {formatTime(message.timestamp)}
                   </span>
                 </div>

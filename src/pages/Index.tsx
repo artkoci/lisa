@@ -6,6 +6,7 @@ import { useVoiceChat } from '@/hooks/useVoiceChat';
 import { useAudioVisualization } from '@/hooks/useAudioVisualization';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/sonner';
+import { Sparkles } from 'lucide-react';
 
 const Index = () => {
   const { toast } = useToast();
@@ -98,19 +99,23 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-purple-950 dark:to-gray-900 flex flex-col items-center justify-center p-6 transition-colors duration-700">
       <div className="max-w-4xl w-full mx-auto flex flex-col items-center">
         <header className="w-full text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-700 dark:from-primary dark:to-blue-400">
-            AI-Powered Call Center
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            Speak naturally with our AI assistant to get help with your questions
+          <div className="inline-flex items-center gap-2 mb-2">
+            <Sparkles className="w-6 h-6 text-purple-500 animate-pulse" />
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 dark:from-purple-400 dark:via-pink-300 dark:to-purple-400">
+              AI Voice Chat
+            </h1>
+            <Sparkles className="w-6 h-6 text-purple-500 animate-pulse" />
+          </div>
+          <p className="mt-2 text-muted-foreground text-lg animate-fade-in">
+            Experience natural conversations with our AI assistant
           </p>
         </header>
         
         <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center backdrop-blur-lg bg-white/30 dark:bg-black/20 p-8 rounded-3xl border border-purple-100 dark:border-purple-900/30 shadow-xl hover:shadow-purple-200/20 dark:hover:shadow-purple-900/20 transition-all duration-500">
             <VoiceVisualizer 
               audioData={audioData}
               isAgentSpeaking={isAgentSpeaking}
@@ -141,13 +146,13 @@ const Index = () => {
             </div>
             
             <div className="text-center mt-10">
-              <p className="text-sm text-muted-foreground">
-                This interface connects to a Python FastAPI backend for AI-powered voice processing.
+              <p className="text-sm text-muted-foreground/80 italic">
+                Powered by advanced AI technology
               </p>
             </div>
           </div>
           
-          <div className="w-full">
+          <div className="w-full animate-fade-in backdrop-blur-lg bg-white/30 dark:bg-black/20 rounded-3xl border border-purple-100 dark:border-purple-900/30 shadow-xl hover:shadow-purple-200/20 dark:hover:shadow-purple-900/20 transition-all duration-500">
             <ChatHistory messages={messages} />
           </div>
         </div>

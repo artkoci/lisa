@@ -82,24 +82,24 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
   // Determine the color based on status
   const getStateColor = () => {
     if (callStatus === 'active') {
-      if (isAgentSpeaking || isUserSpeaking) return 'bg-primary/10 border-primary';
-      return 'bg-secondary border-secondary/80';
+      if (isAgentSpeaking || isUserSpeaking) return 'bg-purple-100/50 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700';
+      return 'bg-secondary/50 border-secondary/50';
     }
-    if (callStatus === 'connecting') return 'bg-amber-100 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700';
-    if (callStatus === 'disconnected' || callStatus === 'error') return 'bg-red-100 border-red-300 dark:bg-red-900/20 dark:border-red-700';
-    return 'bg-secondary border-secondary/80';
+    if (callStatus === 'connecting') return 'bg-amber-100/50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700';
+    if (callStatus === 'disconnected' || callStatus === 'error') return 'bg-red-100/50 dark:bg-red-900/30 border-red-300 dark:border-red-700';
+    return 'bg-secondary/50 border-secondary/50';
   };
 
   return (
     <div className="flex flex-col items-center">
       {/* Main circle containing the audio visualization */}
       <div 
-        className={`relative w-60 h-60 rounded-full flex items-center justify-center transition-all duration-500 border-2 shadow-lg animate-fade-in ${getStateColor()}`}
+        className={`relative w-60 h-60 rounded-full flex items-center justify-center transition-all duration-700 border-2 shadow-[0_0_50px_rgba(168,85,247,0.15)] backdrop-blur-lg ${getStateColor()}`}
       >
         {/* Ripple effect when speaking */}
         {(isAgentSpeaking || isUserSpeaking) && (
           <div className="absolute inset-0 ripple-container">
-            <div className={`absolute inset-0 rounded-full border-2 ${isAgentSpeaking ? 'border-primary/50' : 'border-primary/40'}`}></div>
+            <div className={`absolute inset-0 rounded-full border-2 ${isAgentSpeaking ? 'border-purple-500/50' : 'border-purple-400/40'}`}></div>
           </div>
         )}
         
@@ -121,7 +121,7 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
           <button 
             onClick={onStartCall}
             disabled={callStatus === 'connecting' || callStatus === 'disconnected'}
-            className="p-4 rounded-full bg-green-100 text-green-600 border border-green-200 hover:bg-green-200 hover:text-green-700 transition-colors duration-300 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-4 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:shadow-lg hover:shadow-green-200 dark:hover:shadow-green-900/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
             aria-label="Start Call"
           >
             <Phone className="w-6 h-6" />
@@ -129,7 +129,7 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
         ) : (
           <button 
             onClick={onEndCall}
-            className="p-4 rounded-full bg-red-100 text-red-600 border border-red-200 hover:bg-red-200 hover:text-red-700 transition-colors duration-300 shadow-md"
+            className="p-4 rounded-full bg-gradient-to-r from-red-400 to-rose-500 text-white hover:shadow-lg hover:shadow-red-200 dark:hover:shadow-red-900/30 transition-all duration-300 transform hover:scale-105 active:scale-95"
             aria-label="End Call"
           >
             <PhoneOff className="w-6 h-6" />
@@ -141,7 +141,7 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
           isUserSpeaking ? (
             <button 
               onClick={onStopSpeaking}
-              className="p-4 rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors duration-300 shadow-md"
+              className="p-4 rounded-full bg-gradient-to-r from-purple-400 to-purple-600 text-white hover:shadow-lg hover:shadow-purple-200 dark:hover:shadow-purple-900/30 transition-all duration-300 transform hover:scale-105 active:scale-95"
               aria-label="Stop Speaking"
             >
               <Mic className="w-6 h-6" />
@@ -149,7 +149,7 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
           ) : (
             <button 
               onClick={onStartSpeaking}
-              className="p-4 rounded-full bg-secondary text-muted-foreground border border-secondary/80 hover:bg-secondary/80 transition-colors duration-300 shadow-md"
+              className="p-4 rounded-full bg-secondary hover:bg-secondary/80 text-muted-foreground hover:shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95"
               aria-label="Start Speaking"
             >
               <MicOff className="w-6 h-6" />
