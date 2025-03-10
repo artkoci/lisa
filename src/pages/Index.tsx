@@ -6,11 +6,12 @@ import { useVoiceChat } from '@/hooks/useVoiceChat';
 import { useAudioVisualization } from '@/hooks/useAudioVisualization';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/sonner';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, MessageSquare, X } from 'lucide-react';
 
 const Index = () => {
   const { toast } = useToast();
   const [isMuted, setIsMuted] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   
   const {
     messages,
@@ -98,24 +99,30 @@ const Index = () => {
     startUserSpeaking();
   };
 
+  // Toggle chat history visibility
+  const toggleChat = () => {
+    setIsChatOpen(!isChatOpen);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-purple-950 dark:to-gray-900 flex flex-col items-center justify-center p-6 transition-colors duration-700">
-      <div className="max-w-4xl w-full mx-auto flex flex-col items-center">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-950 to-black flex flex-col items-center justify-center p-6 transition-colors duration-700">
+      <div className="max-w-5xl w-full mx-auto flex flex-col items-center">
         <header className="w-full text-center mb-10">
           <div className="inline-flex items-center gap-2 mb-2">
-            <Sparkles className="w-6 h-6 text-purple-500 animate-pulse" />
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 dark:from-purple-400 dark:via-pink-300 dark:to-purple-400">
+            <Sparkles className="w-6 h-6 text-purple-400 animate-pulse" />
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-300 to-purple-500">
               AI Voice Chat
             </h1>
-            <Sparkles className="w-6 h-6 text-purple-500 animate-pulse" />
+            <Sparkles className="w-6 h-6 text-purple-400 animate-pulse" />
           </div>
           <p className="mt-2 text-muted-foreground text-lg animate-fade-in">
             Experience natural conversations with our AI assistant
           </p>
         </header>
         
-        <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div className="flex flex-col items-center backdrop-blur-lg bg-white/30 dark:bg-black/20 p-8 rounded-3xl border border-purple-100 dark:border-purple-900/30 shadow-xl hover:shadow-purple-200/20 dark:hover:shadow-purple-900/20 transition-all duration-500">
+        <div className="relative w-full flex flex-col items-center justify-center">
+          {/* Main voice visualizer - now centered and prominent */}
+          <div className="flex flex-col items-center backdrop-blur-lg bg-black/30 p-10 rounded-3xl border border-purple-900/30 shadow-xl shadow-purple-900/20 hover:shadow-purple-800/20 transition-all duration-500 max-w-md w-full">
             <VoiceVisualizer 
               audioData={audioData}
               isAgentSpeaking={isAgentSpeaking}
@@ -130,7 +137,7 @@ const Index = () => {
             <div className="mt-6 text-sm text-muted-foreground text-center">
               {callStatus === 'active' ? (
                 isMuted ? (
-                  <span className="text-orange-500 dark:text-orange-400">Microphone is muted</span>
+                  <span className="text-orange-400">Microphone is muted</span>
                 ) : (
                   <span>
                     {isUserSpeaking ? "Listening to you..." : "Press the microphone button to speak"}
@@ -144,16 +151,30 @@ const Index = () => {
                 <span>Call ended</span>
               )}
             </div>
-            
-            <div className="text-center mt-10">
-              <p className="text-sm text-muted-foreground/80 italic">
-                Powered by advanced AI technology
-              </p>
-            </div>
           </div>
           
-          <div className="w-full animate-fade-in backdrop-blur-lg bg-white/30 dark:bg-black/20 rounded-3xl border border-purple-100 dark:border-purple-900/30 shadow-xl hover:shadow-purple-200/20 dark:hover:shadow-purple-900/20 transition-all duration-500">
-            <ChatHistory messages={messages} />
+          {/* Chat history toggle button */}
+          <button 
+            onClick={toggleChat}
+            className="fixed bottom-8 right-8 z-10 p-4 rounded-full bg-gradient-to-r from-purple-700 to-purple-900 text-white shadow-lg shadow-purple-900/30 hover:shadow-purple-800/40 transition-all duration-300 group"
+            aria-label={isChatOpen ? "Close Chat" : "Open Chat"}
+          >
+            {isChatOpen ? (
+              <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
+            ) : (
+              <MessageSquare className="w-6 h-6 group-hover:scale-110 transition-transform" />
+            )}
+          </button>
+          
+          {/* Collapsible chat history panel */}
+          <div 
+            className={`fixed top-0 right-0 h-full w-full sm:w-96 transition-transform duration-500 ease-in-out z-50 transform ${
+              isChatOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}
+          >
+            <div className="h-full w-full bg-black/80 backdrop-blur-xl shadow-2xl border-l border-purple-900/30">
+              <ChatHistory messages={messages} />
+            </div>
           </div>
         </div>
       </div>
