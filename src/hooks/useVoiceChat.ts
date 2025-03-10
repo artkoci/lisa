@@ -1,8 +1,8 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Message, CallStatus, ApiConfig } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
+import { playConnectSound, playDisconnectSound } from '@/utils/sounds';
 
 // Default configuration
 const DEFAULT_API_CONFIG: ApiConfig = {
@@ -48,6 +48,7 @@ export const useVoiceChat = (apiConfig: Partial<ApiConfig> = {}) => {
   // Function to start a call
   const startCall = useCallback(() => {
     setCallStatus('connecting');
+    playConnectSound();
     
     // Simulate connection delay
     setTimeout(() => {
@@ -64,6 +65,7 @@ export const useVoiceChat = (apiConfig: Partial<ApiConfig> = {}) => {
     setCallStatus('disconnected');
     setIsAgentSpeaking(false);
     setIsUserSpeaking(false);
+    playDisconnectSound();
     
     toast({
       title: "Call ended",
