@@ -114,7 +114,7 @@ const Index = () => {
             <h1 className="text-4xl md:text-5xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-300 to-purple-500 font-extrabold">Reverse Lisa</h1>
             <Sparkles className="w-6 h-6 text-purple-400 animate-pulse" />
           </div>
-          <p className="mt-2 text-muted-foreground text-lg animate-fade-in">Experience the future of phone calls</p>
+          <p className="mt-2 text-muted-foreground text-lg animate-fade-in">Welcome to the future</p>
         </header>
         
         <div className="relative w-full flex flex-col items-center justify-center">
