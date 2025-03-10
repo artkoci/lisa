@@ -1,12 +1,16 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import WaveAnimation from '@/components/WaveAnimation';
+
 const Landing = () => {
   const navigate = useNavigate();
   const handleEnter = () => {
     navigate('/voice');
   };
+  
   return <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-black text-white">
       {/* Ambient gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-black via-purple-950/30 to-black opacity-80 z-0"></div>
@@ -16,6 +20,29 @@ const Landing = () => {
       
       {/* Subtle grid overlay */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.03)_1px,transparent_1px)] bg-[size:100px_100px] z-0 opacity-20"></div>
+      
+      {/* Sound wave visualization */}
+      <div className="absolute inset-x-0 bottom-0 h-48 z-10 opacity-80">
+        <WaveAnimation className="h-full" />
+      </div>
+      
+      {/* Floating particles effect */}
+      <div className="absolute inset-0 z-0">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-purple-500/10"
+            style={{
+              width: `${Math.random() * 8 + 2}px`,
+              height: `${Math.random() * 8 + 2}px`,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `float ${Math.random() * 10 + 10}s linear infinite`,
+              animationDelay: `${Math.random() * 5}s`,
+            }}
+          />
+        ))}
+      </div>
       
       <div className="relative z-10 text-center space-y-12 px-6">
         <h1 className="text-5xl md:text-6xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white/90 to-purple-200/80 animate-fade-in">
@@ -41,9 +68,10 @@ const Landing = () => {
         </div>
         
         <div className="absolute bottom-8 left-0 right-0 text-center text-purple-300/50 text-sm animate-fade-in">
-          
+          <p>The future is speaking</p>
         </div>
       </div>
     </div>;
 };
+
 export default Landing;
