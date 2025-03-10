@@ -1,6 +1,5 @@
-
 import React, { useMemo } from 'react';
-import { Mic, MicOff, Phone, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, Sparkle, X } from 'lucide-react';
 import { AudioAnalysisData, CallStatus } from '@/types';
 
 interface VoiceVisualizerProps {
@@ -24,10 +23,9 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
   onStartSpeaking,
   onStopSpeaking
 }) => {
-  // Calculate animation state based on audio data and speaking state
   const audioLines = useMemo(() => {
     const lines = [];
-    const numberOfLines = 20; // Increased number of lines
+    const numberOfLines = 20;
     
     if (audioData && (isAgentSpeaking || isUserSpeaking)) {
       for (let i = 0; i < numberOfLines; i++) {
@@ -39,7 +37,7 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
             key={i} 
             className="audio-line" 
             style={{ 
-              height: `${20 + value * 60}px`, // Increased height for more dramatic effect
+              height: `${20 + value * 60}px`, 
               opacity: 0.3 + value * 0.7,
               backgroundColor: isAgentSpeaking 
                 ? `rgba(168, 85, 247, ${0.5 + value * 0.5})` 
@@ -49,7 +47,6 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
         );
       }
     } else {
-      // Static lines when not speaking
       for (let i = 0; i < numberOfLines; i++) {
         lines.push(
           <div 
@@ -69,7 +66,6 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
     return lines;
   }, [audioData, isAgentSpeaking, isUserSpeaking]);
 
-  // Get the status text
   const getStatusText = () => {
     if (callStatus === 'idle') return 'Ready to Connect';
     if (callStatus === 'connecting') return 'Connecting...';
@@ -83,7 +79,6 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
     return '';
   };
 
-  // Determine the color based on status
   const getStateColor = () => {
     if (callStatus === 'active') {
       if (isAgentSpeaking || isUserSpeaking) return 'bg-purple-950/40 border-purple-700/50';
@@ -96,42 +91,35 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
 
   return (
     <div className="flex flex-col items-center">
-      {/* Main circle containing the audio visualization */}
       <div 
         className={`relative w-72 h-72 rounded-full flex items-center justify-center transition-all duration-700 border-2 shadow-[0_0_100px_rgba(168,85,247,0.3)] backdrop-blur-lg ${getStateColor()}`}
       >
-        {/* Outer glow effect */}
         <div className="absolute inset-0 rounded-full bg-purple-600/5 blur-xl"></div>
         
-        {/* Ripple effect when speaking */}
         {(isAgentSpeaking || isUserSpeaking) && (
           <div className="absolute inset-0 ripple-container">
             <div className={`absolute inset-0 rounded-full border-2 ${isAgentSpeaking ? 'border-purple-500/50' : 'border-purple-400/40'}`}></div>
           </div>
         )}
         
-        {/* Audio visualization */}
         <div className="flex items-center h-20 space-x-0.5 z-10">
           {audioLines}
         </div>
         
-        {/* Status text */}
         <div className="absolute bottom-10 text-center z-10">
           <p className="text-sm font-medium text-purple-100">{getStatusText()}</p>
         </div>
       </div>
       
-      {/* Controls */}
       <div className="mt-8 flex space-x-6">
-        {/* Call button */}
         {callStatus !== 'active' ? (
           <button 
             onClick={onStartCall}
             disabled={callStatus === 'connecting' || callStatus === 'disconnected'}
-            className="p-4 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg hover:shadow-green-900/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
+            className="p-4 rounded-full bg-gradient-to-r from-purple-500 to-purple-700 text-white hover:shadow-lg hover:shadow-purple-900/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
             aria-label="Start Call"
           >
-            <Phone className="w-6 h-6" />
+            <Sparkle className="w-6 h-6" />
           </button>
         ) : (
           <button 
@@ -139,11 +127,10 @@ const VoiceVisualizer: React.FC<VoiceVisualizerProps> = ({
             className="p-4 rounded-full bg-gradient-to-r from-red-500 to-rose-600 text-white hover:shadow-lg hover:shadow-red-900/30 transition-all duration-300 transform hover:scale-105 active:scale-95"
             aria-label="End Call"
           >
-            <PhoneOff className="w-6 h-6" />
+            <X className="w-6 h-6" />
           </button>
         )}
         
-        {/* Mic button - only shown when call is active */}
         {callStatus === 'active' && (
           isUserSpeaking ? (
             <button 
