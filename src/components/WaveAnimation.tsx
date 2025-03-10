@@ -17,79 +17,107 @@ const WaveAnimation: React.FC<WaveAnimationProps> = ({ className }) => {
     if (!ctx) return;
 
     let animationFrameId: number;
-    let particles: { x: number; y: number; radius: number; color: string; speedY: number; amplitude: number; frequency: number; phase: number }[] = [];
+    let time = 0;
     
     // Set canvas dimensions
     const handleResize = () => {
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
-      initParticles();
-    };
-
-    // Initialize particles
-    const initParticles = () => {
-      particles = [];
-      const particleCount = Math.floor(canvas.width / 8); // Adjust density
-      
-      for (let i = 0; i < particleCount; i++) {
-        particles.push({
-          x: i * (canvas.width / particleCount),
-          y: canvas.height / 2,
-          radius: Math.random() * 2 + 1,
-          color: `rgba(${139 + Math.random() * 40}, ${92 + Math.random() * 40}, ${246 + Math.random() * 10}, ${0.3 + Math.random() * 0.5})`,
-          speedY: 0.05 + Math.random() * 0.1,
-          amplitude: 20 + Math.random() * 30,
-          frequency: 0.01 + Math.random() * 0.02,
-          phase: Math.random() * Math.PI * 2
-        });
-      }
     };
 
     // Animation loop
     const animate = () => {
+      time += 0.01;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Draw connecting line
-      ctx.beginPath();
-      ctx.moveTo(0, canvas.height / 2);
+      // Draw primary wave
+      drawWave(ctx, canvas, time, canvas.height / 2, 20, 'rgba(139, 92, 246, 0.5)', 2);
       
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
+      // Draw secondary waves with different amplitudes, frequencies and phases
+      drawWave(ctx, canvas, time * 0.8, canvas.height / 2 + 5, 15, 'rgba(139, 92, 246, 0.3)', 1.5);
+      drawWave(ctx, canvas, time * 1.2, canvas.height / 2 - 5, 12, 'rgba(139, 92, 246, 0.3)', 1.5);
+      
+      // Draw subtle background waves
+      drawWave(ctx, canvas, time * 0.5, canvas.height / 2 + 10, 8, 'rgba(139, 92, 246, 0.2)', 1);
+      drawWave(ctx, canvas, time * 0.7, canvas.height / 2 - 10, 10, 'rgba(139, 92, 246, 0.2)', 1);
+      
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    // Function to draw a smooth wave
+    const drawWave = (
+      ctx: CanvasRenderingContext2D, 
+      canvas: HTMLCanvasElement, 
+      time: number,
+      baseY: number,
+      amplitude: number,
+      color: string,
+      lineWidth: number
+    ) => {
+      ctx.beginPath();
+      ctx.moveTo(0, baseY);
+      
+      // Use bezier curves for smoother waves
+      const segments = Math.ceil(canvas.width / 50); // Number of curve segments
+      const segmentWidth = canvas.width / segments;
+      
+      for (let i = 0; i <= segments; i++) {
+        const x = i * segmentWidth;
+        // Multiple sine waves with different frequencies and phases for more natural look
+        const y = baseY + 
+                  amplitude * Math.sin(time + i * 0.2) + 
+                  amplitude * 0.5 * Math.sin(time * 1.5 + i * 0.1);
         
-        // Update particle position - wave motion
-        p.phase += p.frequency;
-        p.y = canvas.height / 2 + Math.sin(p.phase) * p.amplitude;
-        
-        // Draw line to particle
-        ctx.lineTo(p.x, p.y);
-        
-        // Prepare for next particle
-        if (i === particles.length - 1) {
-          ctx.lineTo(canvas.width, canvas.height / 2);
+        if (i === 0) {
+          ctx.lineTo(x, y);
+        } else {
+          // Use quadratic curves for smoother transitions
+          const prevX = (i - 1) * segmentWidth;
+          const cpX = (prevX + x) / 2;
+          const prevY = baseY + 
+                        amplitude * Math.sin(time + (i - 1) * 0.2) + 
+                        amplitude * 0.5 * Math.sin(time * 1.5 + (i - 1) * 0.1);
+          ctx.quadraticCurveTo(cpX, prevY, x, y);
         }
       }
       
-      // Style and stroke the line
-      ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      // Fill the area below the line
+      // Complete the path to the bottom right and left for filling
       ctx.lineTo(canvas.width, canvas.height);
       ctx.lineTo(0, canvas.height);
       ctx.closePath();
-      ctx.fillStyle = 'rgba(139, 92, 246, 0.1)';
+      
+      // Fill with gradient
+      const gradient = ctx.createLinearGradient(0, baseY, 0, canvas.height);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
+      ctx.fillStyle = gradient;
       ctx.fill();
       
-      // Draw particles
-      for (const p of particles) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = p.color;
-        ctx.fill();
+      // Draw the wave line
+      ctx.beginPath();
+      ctx.moveTo(0, baseY);
+      
+      for (let i = 0; i <= segments; i++) {
+        const x = i * segmentWidth;
+        const y = baseY + 
+                  amplitude * Math.sin(time + i * 0.2) + 
+                  amplitude * 0.5 * Math.sin(time * 1.5 + i * 0.1);
+        
+        if (i === 0) {
+          ctx.lineTo(x, y);
+        } else {
+          const prevX = (i - 1) * segmentWidth;
+          const cpX = (prevX + x) / 2;
+          const prevY = baseY + 
+                        amplitude * Math.sin(time + (i - 1) * 0.2) + 
+                        amplitude * 0.5 * Math.sin(time * 1.5 + (i - 1) * 0.1);
+          ctx.quadraticCurveTo(cpX, prevY, x, y);
+        }
       }
       
-      animationFrameId = requestAnimationFrame(animate);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
     };
 
     // Set up resize listener
