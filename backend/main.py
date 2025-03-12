@@ -1,20 +1,20 @@
-
 import os
 import json
 import asyncio
 import logging
 from typing import Dict, List, Optional, Any
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-import openai
-from deepgram import Deepgram
+from openai import AsyncOpenAI
+import httpx
+from deepgram import DeepgramClient, SpeakOptions, PrerecordedOptions
 import uuid
 import io
 import base64
 
 # Load environment variables
-load_dotenv()
+load_dotenv('.env.dev')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,9 +33,14 @@ app.add_middleware(
 )
 
 # Initialize API clients
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Create a custom HTTP client without proxies
+http_client = httpx.AsyncClient()
+openai_client = AsyncOpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    http_client=http_client
+)
 deepgram_api_key = os.getenv("DEEPGRAM_API_KEY")
-deepgram = Deepgram(deepgram_api_key)
+deepgram = DeepgramClient(deepgram_api_key)
 
 # Store active sessions
 active_sessions: Dict[str, Dict[str, Any]] = {}
@@ -48,21 +53,83 @@ async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
 
+@app.get("/tts")
+async def text_to_speech(text: str):
+    """Convert text to speech using Deepgram."""
+    try:
+        # Generate audio from text using Deepgram client
+        audio_data = await generate_audio_from_text(text)
+        
+        # Return the audio as a response
+        return Response(
+            content=audio_data, 
+            media_type="audio/mp3",
+            headers={"Content-Disposition": "attachment; filename=speech.mp3"}
+        )
+    except Exception as e:
+        logger.error(f"Deepgram TTS error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
+
+async def generate_audio_from_text(text: str) -> bytes:
+    """Generate audio from text using Deepgram."""
+    try:
+        # Create text payload
+        text_payload = {
+            "text": text
+        }
+        
+        # Configure TTS options
+        options = SpeakOptions(
+            model="aura-asteria-en",
+        )
+        
+        # Use the Deepgram API directly since the SDK's save method expects a file path
+        url = "https://api.deepgram.com/v1/speak"
+        headers = {
+            "Authorization": f"Token {deepgram_api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Parameters according to the Deepgram documentation
+        params = {
+            "model": "aura-asteria-en",  # High-quality voice
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=text_payload, headers=headers, params=params)
+            
+            if response.status_code != 200:
+                logger.error(f"Deepgram TTS error: {response.text}")
+                raise Exception(f"TTS API error: {response.text}")
+            
+            return response.content
+    except Exception as e:
+        logger.error(f"Deepgram audio generation error: {str(e)}")
+        raise Exception(f"Failed to generate audio: {str(e)}")
+
 async def transcribe_audio(audio_data: bytes, session_id: str) -> str:
     """Transcribe audio data using Deepgram."""
     try:
-        source = {'buffer': audio_data, 'mimetype': 'audio/webm'}
-        response = await deepgram.transcription.prerecorded(
-            source,
-            {
-                'punctuate': True,
-                'language': 'en',
-                'model': 'nova',
-            }
+        # Use the correct Deepgram SDK v3 API for transcription with async support
+        
+        # Configure transcription options
+        options = PrerecordedOptions(
+            model="nova-2",
+            language="en",
+            punctuate=True,
+        )
+        
+        # Call the transcribe_file method on the asyncrest API
+        response = await deepgram.listen.asyncrest.v("1").transcribe_file(
+            {"buffer": audio_data, "mimetype": "audio/webm"},
+            options
         )
         
         # Get transcription result
-        transcript = response['results']['channels'][0]['alternatives'][0]['transcript']
+        if not response or not response.results:
+            return ""
+            
+        transcript = response.results.channels[0].alternatives[0].transcript
         
         if not transcript:
             return ""
@@ -90,7 +157,7 @@ async def generate_response(message: str, session_id: str) -> str:
         }
         
         # Generate response from OpenAI
-        response = await openai.chat.completions.create(
+        response = await openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[system_message] + history,
             max_tokens=150,
@@ -178,6 +245,21 @@ async def websocket_endpoint(websocket: WebSocket):
                                 "type": "agent_message",
                                 "text": response_text,
                             })
+                            
+                            # Generate audio for the response
+                            try:
+                                audio_data = await generate_audio_from_text(response_text)
+                                # Convert audio data to base64 for sending over WebSocket
+                                audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+                                
+                                # Send audio response
+                                await websocket.send_json({
+                                    "type": "audio_response",
+                                    "audio": audio_base64,
+                                    "format": "mp3"
+                                })
+                            except Exception as e:
+                                logger.error(f"Failed to generate audio: {str(e)}")
                 
                 except json.JSONDecodeError:
                     logger.error("Failed to parse JSON message")
@@ -208,6 +290,21 @@ async def websocket_endpoint(websocket: WebSocket):
                         "type": "agent_message",
                         "text": response_text,
                     })
+                    
+                    # Generate audio for the response
+                    try:
+                        audio_data = await generate_audio_from_text(response_text)
+                        # Convert audio data to base64 for sending over WebSocket
+                        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+                        
+                        # Send audio response
+                        await websocket.send_json({
+                            "type": "audio_response",
+                            "audio": audio_base64,
+                            "format": "mp3"
+                        })
+                    except Exception as e:
+                        logger.error(f"Failed to generate audio: {str(e)}")
                 else:
                     # No transcription available
                     await websocket.send_json({
@@ -254,4 +351,4 @@ async def cleanup_inactive_sessions():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8003, reload=True)

@@ -1,13 +1,12 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Message, CallStatus, ApiConfig } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
-import { playConnectSound, playDisconnectSound } from '@/utils/sounds';
+import { playConnectSound, playDisconnectSound, speakText, playAudioFromBase64 } from '@/utils/sounds';
 
 // Default configuration
 const DEFAULT_API_CONFIG: ApiConfig = {
-  baseUrl: 'http://localhost:8000',
+  baseUrl: 'http://localhost:8003',
 };
 
 export const useVoiceChat = (apiConfig: Partial<ApiConfig> = {}) => {
@@ -91,13 +90,28 @@ export const useVoiceChat = (apiConfig: Partial<ApiConfig> = {}) => {
           // Set agent speaking state
           setIsAgentSpeaking(true);
           
-          // When using text-to-speech, the agent will speak for a while
-          // In a real implementation, we'd use the audio duration to determine when to stop
-          // For now, we'll set a timeout based on text length
-          const speakingDuration = Math.max(2000, data.text.length * 80);
-          setTimeout(() => {
-            setIsAgentSpeaking(false);
-          }, speakingDuration);
+          // We'll wait for the audio_response instead of using speakText here
+          // The backend will send the audio data separately
+        }
+        else if (data.type === 'audio_response') {
+          // Play the audio data received from the backend
+          playAudioFromBase64(data.audio, data.format)
+            .then(() => {
+              // When speech is complete, set agent speaking to false
+              setIsAgentSpeaking(false);
+            })
+            .catch(error => {
+              console.error('Audio playback error:', error);
+              // If there's an error, still set agent speaking to false
+              setIsAgentSpeaking(false);
+              
+              // Fall back to browser TTS if available
+              const lastAgentMessage = [...messages].reverse().find(m => m.sender === 'agent');
+              if (lastAgentMessage) {
+                speakText(lastAgentMessage.text)
+                  .catch(e => console.error('Fallback TTS error:', e));
+              }
+            });
         }
         else if (data.type === 'transcription') {
           // Add user message from transcription
