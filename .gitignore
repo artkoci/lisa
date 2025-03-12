@@ -31,3 +31,10 @@ dist-ssr
 
 # virtual environment
 .venv/
+
+# backend
+backend/__pycache__
+backend/.env
+backend/.env.local
+backend/.env.dev
+backend/.env.prod
