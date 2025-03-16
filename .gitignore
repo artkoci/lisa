@@ -33,8 +33,8 @@ dist-ssr
 .venv/
 
 # backend
-backend/__pycache__
-backend/.env
-backend/.env.local
-backend/.env.dev
-backend/.env.prod
+__pycache__
+.env
+.env.local
+.env.dev
+.env.prod
